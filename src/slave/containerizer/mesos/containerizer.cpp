@@ -642,7 +642,7 @@ Future<Nothing> MesosContainerizerProcess::provision(
                     "' but no suitable provisioner available");
   }
 
-  return provisioners[image.type()]->provision(containerId, image)
+  return provisioners[image.type()]->provision(containerId, image, directory)
     .then(defer(self(),
                 &Self::_provision,
                 containerId,

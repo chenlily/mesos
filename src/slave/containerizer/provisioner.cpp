@@ -18,6 +18,8 @@
 
 #include "slave/containerizer/provisioner.hpp"
 
+#include "slave/containerizer/provisioners/docker.hpp"
+
 using namespace process;
 
 namespace mesos {
@@ -27,8 +29,29 @@ namespace slave {
 Try<hashmap<ContainerInfo::Image::Type, Owned<Provisioner>>>
   Provisioner::create(const Flags& flags, Fetcher* fetcher)
 {
-  // TODO(tnachen): Load provisioners when one of them is available.
-  return hashmap<ContainerInfo::Image::Type, Owned<Provisioner>>();
+  if (!flags.provisioners.isSome()) {
+    return hashmap<ContainerInfo::Image::Type, Owned<Provisioner>>();
+  }
+
+  hashmap<ContainerInfo::Image::Type, Owned<Provisioner>> provisioners;
+
+  foreach (const std::string& type,
+           strings::tokenize(flags.provisioners.get(), ",")) {
+    if (type == "docker") {
+      Try<Owned<Provisioner>> create =
+        docker::DockerProvisioner::create(flags, fetcher);
+      if (create.isError()) {
+        return Error("Failed to create Docker provisioner: " +
+                      create.error());
+      }
+
+      provisioners[ContainerInfo::Image::DOCKER] = create.get();
+    } else {
+      return Error("Unknown or unsupported provisioner '" + type + "'");
+    }
+  }
+
+  return provisioners;
 }
 
 } // namespace slave {
