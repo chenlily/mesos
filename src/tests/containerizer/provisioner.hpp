@@ -50,9 +50,9 @@ public:
     EXPECT_CALL(*this, recover(_, _))
       .WillRepeatedly(DoDefault());
 
-    ON_CALL(*this, provision(_, _))
+    ON_CALL(*this, provision(_, _, _))
       .WillByDefault(Invoke(this, &TestAppcProvisioner::unmocked_provision));
-    EXPECT_CALL(*this, provision(_, _))
+    EXPECT_CALL(*this, provision(_, _, _))
       .WillRepeatedly(DoDefault());
 
     ON_CALL(*this, destroy(_))
@@ -67,11 +67,12 @@ public:
           const std::list<mesos::slave::ContainerState>& states,
           const hashset<ContainerID>& orphans));
 
-  MOCK_METHOD2(
+  MOCK_METHOD3(
       provision,
       process::Future<std::string>(
           const ContainerID& containerId,
-          const Image& image));
+          const Image& image,
+          const std::string& sandbox));
 
   MOCK_METHOD1(
       destroy,
@@ -87,7 +88,8 @@ public:
 
   process::Future<std::string> unmocked_provision(
       const ContainerID& containerId,
-      const Image& image)
+      const Image& image,
+      const std::string& sandbox)
   {
     if (image.type() != Image::APPC) {
       return process::Failure(

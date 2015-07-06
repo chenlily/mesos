@@ -172,8 +172,10 @@ Future<Option<ContainerPrepareInfo>> LinuxFilesystemIsolatorProcess::prepare(
         "No suitable provisioner found for container image type '" +
         stringify(image.type()) + "'");
   }
-
-  return provisioners[image.type()]->provision(containerId, image)
+  return provisioners[image.type()]->provision(
+      containerId,
+      image,
+      directory)
     .then(defer(PID<LinuxFilesystemIsolatorProcess>(this),
                 &LinuxFilesystemIsolatorProcess::_prepare,
                 containerId,
@@ -217,7 +219,7 @@ Future<Option<ContainerPrepareInfo>> LinuxFilesystemIsolatorProcess::_prepare(
     }
 
     futures.push_back(
-        provisioners[image.type()]->provision(containerId, image)
+        provisioners[image.type()]->provision(containerId, image, directory)
           .then([volume](const string& path) -> Future<Nothing> {
             volume->set_host_path(path);
             return Nothing();

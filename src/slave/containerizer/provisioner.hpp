@@ -20,6 +20,7 @@
 #define __MESOS_PROVISIONER_HPP__
 
 #include <list>
+#include <string>
 
 #include <mesos/resources.hpp>
 
@@ -61,7 +62,8 @@ public:
   // image and return the absolute path to the root filesystem.
   virtual process::Future<std::string> provision(
       const ContainerID& containerId,
-      const Image& image) = 0;
+      const Image& image,
+      const std::string& sandbox) = 0;
 
   // Destroy a previously provisioned root filesystem. Assumes that
   // all references (e.g., mounts, open files) to the provisioned
