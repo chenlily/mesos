@@ -625,6 +625,7 @@ if OS_LINUX
   libmesos_no_3rdparty_la_SOURCES += slave/containerizer/isolators/filesystem/linux.cpp
   libmesos_no_3rdparty_la_SOURCES += slave/containerizer/isolators/filesystem/shared.cpp
   libmesos_no_3rdparty_la_SOURCES += slave/containerizer/linux_launcher.cpp
+  libmesos_no_3rdparty_la_SOURCES += slave/containerizer/provisioners/docker/store.cpp
 else
   EXTRA_DIST += linux/cgroups.cpp
   EXTRA_DIST += linux/fs.cpp
@@ -741,6 +742,7 @@ libmesos_no_3rdparty_la_SOURCES +=					\
 	slave/containerizer/provisioners/appc/spec.hpp			\
 	slave/containerizer/provisioners/appc/store.hpp			\
 	slave/containerizer/provisioners/backend.hpp			\
+  slave/containerizer/provisioners/docker/store.hpp   \
 	slave/containerizer/isolators/posix.hpp				\
 	slave/containerizer/isolators/posix/disk.hpp			\
 	slave/containerizer/isolators/cgroups/constants.hpp		\
