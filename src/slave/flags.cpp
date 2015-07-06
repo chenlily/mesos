@@ -64,6 +64,11 @@ mesos::internal::slave::Flags::Flags()
       "Comma separated list of image rootfs provisioners,\n"
       "e.g., appc,docker");
 
+  add(&Flags::docker_store_dir,
+      "docker_store_dir",
+      "Directory the docker provisioner will store images in",
+      "/tmp/mesos/store/docker");
+
   add(&Flags::default_role,
       "default_role",
       "Any resources in the --resources flag that\n"
