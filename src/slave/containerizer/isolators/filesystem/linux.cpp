@@ -167,7 +167,10 @@ Future<Option<ContainerPrepareInfo>> LinuxFilesystemIsolatorProcess::prepare(
             stringify(image.type()) + "'");
       }
 
-      return provisioners[image.type()]->provision(containerId, image)
+      return provisioners[image.type()]->provision(
+          containerId,
+          image,
+          directory)
         .then(defer(PID<LinuxFilesystemIsolatorProcess>(this),
                     &LinuxFilesystemIsolatorProcess::_prepare,
                     containerId,
