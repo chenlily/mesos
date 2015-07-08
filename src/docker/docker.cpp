@@ -33,6 +33,7 @@
 #include "common/status_utils.hpp"
 
 #include "docker/docker.hpp"
+#include "docker/parallel.hpp"
 
 #ifdef __linux__
 #include "linux/cgroups.hpp"
@@ -837,6 +838,9 @@ Future<list<Docker::Container>> Docker::__ps(
   CHECK(!lines.empty());
   lines.erase(lines.begin());
 
+  // TODO(chenlily): create a configurable constant.
+  Parallel<Docker::Container> parallel(1000);
+
   list<Future<Docker::Container>> futures;
 
   foreach (const string& line, lines) {
@@ -845,10 +849,8 @@ Future<list<Docker::Container>> Docker::__ps(
     vector<string> columns = strings::split(strings::trim(line), " ");
     // We expect the name column to be the last column from ps.
     string name = columns[columns.size() - 1];
-    if (prefix.isNone()) {
-      futures.push_back(docker.inspect(name));
-    } else if (strings::startsWith(name, prefix.get())) {
-      futures.push_back(docker.inspect(name));
+    if (prefix.isNone() || strings::startsWith(name, prefix.get())) {
+      futures.push_back(parallel.add([=]() { return docker.inspect(name); }));
     }
   }
 
