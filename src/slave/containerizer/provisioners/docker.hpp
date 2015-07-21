@@ -46,7 +46,6 @@ namespace docker {
 
 // Forward declarations.
 class Backend;
-class Discovery;
 class Store;
 
 struct DockerLayer {
@@ -94,7 +93,6 @@ struct DockerImage
   std::string name;
   Option<process::Shared<DockerLayer>> layer;
 };
-
 
 // Forward declaration.
 class DockerProvisionerProcess;
@@ -150,7 +148,6 @@ public:
 private:
   DockerProvisionerProcess(
       const Flags& flags,
-      const process::Owned<Discovery>& discovery,
       const process::Owned<Store>& store,
       const process::Owned<Backend>& backend);
 
@@ -164,7 +161,6 @@ private:
 
   const Flags flags;
 
-  process::Owned<Discovery> discovery;
   process::Owned<Store> store;
   process::Owned<Backend> backend;
 };

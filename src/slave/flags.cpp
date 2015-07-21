@@ -84,11 +84,6 @@ mesos::internal::slave::Flags::Flags()
       "filesystems in",
       "/tmp/mesos/containers");
 
-  add(&Flags::docker_discovery,
-      "docker_discovery",
-      "Strategy for docker provisioner to discover images",
-      "local");
-
   add(&Flags::docker_discovery_local_dir,
       "docker_discovery_local_dir",
       "Directory for docker provisioner to look in for local images",

@@ -31,7 +31,6 @@
 #include "slave/containerizer/provisioners/docker.hpp"
 
 #include "slave/containerizer/provisioners/docker/backend.hpp"
-#include "slave/containerizer/provisioners/docker/discovery.hpp"
 #include "slave/containerizer/provisioners/docker/store.hpp"
 
 using namespace process;
@@ -130,11 +129,6 @@ Try<Owned<DockerProvisionerProcess>> DockerProvisionerProcess::create(
                  flags.docker_rootfs_dir + "': " + mkdir.error());
   }
 
-  Try<Owned<Discovery>> discovery = Discovery::create(flags);
-  if (discovery.isError()) {
-    return Error("Failed to create discovery: " + discovery.error());
-  }
-
   Try<Owned<Store>> store = Store::create(flags, fetcher);
   if (store.isError()) {
     return Error("Failed to create image store: " + store.error());
@@ -148,7 +142,6 @@ Try<Owned<DockerProvisionerProcess>> DockerProvisionerProcess::create(
   return Owned<DockerProvisionerProcess>(
       new DockerProvisionerProcess(
           flags,
-          discovery.get(),
           store.get(),
           backend.get()));
 }
@@ -156,11 +149,9 @@ Try<Owned<DockerProvisionerProcess>> DockerProvisionerProcess::create(
 
 DockerProvisionerProcess::DockerProvisionerProcess(
     const Flags& _flags,
-    const Owned<Discovery>& _discovery,
     const Owned<Store>& _store,
     const Owned<Backend>& _backend)
   : flags(_flags),
-    discovery(_discovery),
     store(_store),
     backend(_backend) {}
 
@@ -169,7 +160,7 @@ Future<Nothing> DockerProvisionerProcess::recover(
     const list<ExecutorRunState>& states,
     const hashset<ContainerID>& orphans)
 {
-  // TODO(idownes): Implement this, if a need arises.
+  // TODO(chenlily): Implement this, if a need arises.
 
   return Nothing();
 }
@@ -235,10 +226,14 @@ Future<DockerImage> DockerProvisionerProcess::fetch(
         return image.get();
       }
 
-      return discovery->discover(name)
-        .then([=](const string& uri) -> Future<DockerImage> {
-            return store->put(uri, name, directory);
-        });
+      Try<string> uri = path::join(
+          "file:///",
+          flags.docker_discovery_local_dir,
+          name);
+      if (uri.isError()) {
+        return Failure(uri.error());
+      }
+      return store->put(uri.get(), name, directory);
     });
 }
 

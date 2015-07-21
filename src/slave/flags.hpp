@@ -50,7 +50,6 @@ public:
   std::string appc_store_dir;
   std::string appc_backend;
   std::string appc_rootfs_dir;
-  std::string docker_discovery;
   std::string docker_discovery_local_dir;
   std::string docker_store_dir;
   std::string docker_backend;
