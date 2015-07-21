@@ -48,56 +48,65 @@ Try<Owned<Store>> Store::create(
     const Flags& flags,
     Fetcher* fetcher)
 {
-  Try<Owned<StoreProcess>> process = StoreProcess::create(flags, fetcher);
+  hashmap<string, Try<Owned<Store>>(*)(const Flags&, Fetcher*)> creators{
+    {"local", &LocalStore::create}
+  };
+
+  if (!creators.contains(flags.docker_store)) {
+    return Error("Unknown or unsupported image retrieval");
+  }
+
+  return creators[flags.docker_store](flags, fetcher);
+}
+
+Try<Owned<Store>> LocalStore::create(
+    const Flags& flags,
+    Fetcher* fetcher)
+{
+  Try<Owned<LocalStoreProcess>> process =
+    LocalStoreProcess::create(flags, fetcher);
   if (process.isError()) {
     return Error("Failed to create store: " + process.error());
   }
 
-  return Owned<Store>(new Store(process.get()));
+  return Owned<Store>(new LocalStore(process.get()));
 }
 
 
-Store::Store(Owned<StoreProcess> process)
+LocalStore::LocalStore(Owned<LocalStoreProcess> process)
   : process(process)
 {
   process::spawn(CHECK_NOTNULL(process.get()));
 }
 
 
-Store::~Store()
+LocalStore::~LocalStore()
 {
   process::terminate(process.get());
   process::wait(process.get());
 }
 
 
-Future<DockerImage> Store::put(
+Future<DockerImage> LocalStore::put(
     const string& uri,
     const string& name,
     const string& directory)
 {
-  return dispatch(process.get(), &StoreProcess::put, uri, name, directory);
+  return dispatch(process.get(), &LocalStoreProcess::put, uri, name, directory);
 }
 
 
-Future<Option<DockerImage>> Store::get(const string& name)
+Future<Option<DockerImage>> LocalStore::get(const string& name)
 {
-  return dispatch(process.get(), &StoreProcess::get, name);
+  return dispatch(process.get(), &LocalStoreProcess::get, name);
 }
 
-
-Future<Option<Shared<DockerLayer>>> Store::getLayer(const string& hash)
-{
-  return dispatch(process.get(), &StoreProcess::getLayer, hash);
-}
-
-
-Try<Owned<StoreProcess>> StoreProcess::create(
+Try<Owned<LocalStoreProcess>> LocalStoreProcess::create(
     const Flags& flags,
     Fetcher* fetcher)
 {
-  Owned<StoreProcess> store =
-    Owned<StoreProcess>(new StoreProcess(flags, fetcher));
+  Owned<LocalStoreProcess> store =
+    Owned<LocalStoreProcess>(new LocalStoreProcess(flags, fetcher));
 
   Try<Nothing> restore = store->restore();
   if (restore.isError()) {
@@ -108,7 +117,7 @@ Try<Owned<StoreProcess>> StoreProcess::create(
 }
 
 
-StoreProcess::StoreProcess(
+LocalStoreProcess::LocalStoreProcess(
     const Flags& flags,
     Fetcher* fetcher)
   : flags(flags),
@@ -116,7 +125,7 @@ StoreProcess::StoreProcess(
 
 // Currently only local file:// uri supported.
 // TODO(chenlily): Add support for fetching image from external uri.
-Future<DockerImage> StoreProcess::put(
+Future<DockerImage> LocalStoreProcess::put(
     const string& uri,
     const string& name,
     const string& directory)
@@ -195,7 +204,7 @@ Future<DockerImage> StoreProcess::put(
 }
 
 
-Future<Shared<DockerLayer>> StoreProcess::putLayer(
+Future<Shared<DockerLayer>> LocalStoreProcess::putLayer(
     const string& uri,
     const string& directory)
 {
@@ -222,7 +231,7 @@ Future<Shared<DockerLayer>> StoreProcess::putLayer(
 }
 
 
-Future<Nothing> StoreProcess::untarLayer(
+Future<Nothing> LocalStoreProcess::untarLayer(
     const string& uri)
 {
   string rootFs = path::join(uri, "rootfs");
@@ -270,7 +279,7 @@ Future<Nothing> StoreProcess::untarLayer(
 }
 
 
-Future<Shared<DockerLayer>> StoreProcess::storeLayer(
+Future<Shared<DockerLayer>> LocalStoreProcess::storeLayer(
     const string& hash,
     const string& uri,
     const string& directory)
@@ -345,7 +354,7 @@ Future<Shared<DockerLayer>> StoreProcess::storeLayer(
     });
 }
 
-Future<Shared<DockerLayer>> StoreProcess::entry(
+Future<Shared<DockerLayer>> LocalStoreProcess::entry(
     const string& uri,
     const string& directory)
 {
@@ -353,7 +362,7 @@ Future<Shared<DockerLayer>> StoreProcess::entry(
   if (realpath.isError()) {
     return Failure("Error in checking store path: " + realpath.error());
   } else if (realpath.isNone()) {
-    return Failure("StoreProcess path not found");
+    return Failure("LocalStoreProcess path not found");
   }
 
   Try<string> hash = os::basename(realpath.get());
@@ -411,7 +420,7 @@ Future<Shared<DockerLayer>> StoreProcess::entry(
 }
 
 
-Future<Option<DockerImage>> StoreProcess::get(const string& name)
+Future<Option<DockerImage>> LocalStoreProcess::get(const string& name)
 {
   if (!images.contains(name)) {
     return None();
@@ -421,18 +430,9 @@ Future<Option<DockerImage>> StoreProcess::get(const string& name)
 }
 
 
-Future<Option<Shared<DockerLayer>>> StoreProcess::getLayer(const string& hash)
-{
-  if (!layers.contains(hash)) {
-    return None();
-  }
-
-  return layers[hash];
-}
-
 // Recover stored image layers and update layers map.
 // TODO(chenlily): Implement restore.
-Try<Nothing> StoreProcess::restore()
+Try<Nothing> LocalStoreProcess::restore()
 {
   return Nothing();
 }
