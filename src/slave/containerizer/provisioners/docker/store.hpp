@@ -39,9 +39,6 @@ namespace internal {
 namespace slave {
 namespace docker {
 
-// Forward declaration.
-class StoreProcess;
-
 class Store
 {
 public:
@@ -49,39 +46,55 @@ public:
       const Flags& flags,
       Fetcher* fetcher);
 
-  ~Store();
+  virtual ~Store() {}
 
   // Put an image into to the store. Returns the DockerImage containing
   // the manifest, hash of the image, and the path to the extracted
   // image.
-  process::Future<DockerImage> put(
+  virtual process::Future<DockerImage> put(
+      const std::string& uri,
+      const std::string& name,
+      const std::string& directory) = 0;
+
+  // Get image by name.
+  virtual process::Future<Option<DockerImage>> get(const std::string& name) = 0;
+};
+
+
+// Forward declaration.
+class LocalStoreProcess;
+
+class LocalStore : public Store
+{
+public:
+  virtual ~LocalStore();
+
+  static Try<process::Owned<Store>> create(
+      const Flags& flags,
+      Fetcher* fetcher);
+
+  virtual process::Future<DockerImage> put(
       const std::string& uri,
       const std::string& name,
       const std::string& directory);
 
-  // Get image by name.
-  process::Future<Option<DockerImage>> get(const std::string& name);
-
-  // Get a specific layer matched by hash.
-  process::Future<Option<process::Shared<DockerLayer>>> getLayer(
-      const std::string& hash);
+  virtual process::Future<Option<DockerImage>> get(const std::string& name);
 
 private:
-  Store(process::Owned<StoreProcess> process);
+  explicit LocalStore(process::Owned<LocalStoreProcess> process);
 
-  Store(const Store&); // Not copyable.
-  Store& operator=(const Store&); // Not assignable.
+  LocalStore(const LocalStore&); // Not copyable.
+  LocalStore& operator=(const LocalStore&); // Not assignable.
 
-  process::Owned<StoreProcess> process;
+  process::Owned<LocalStoreProcess> process;
 };
 
-
-class StoreProcess : public process::Process<StoreProcess>
+class LocalStoreProcess : public process::Process<LocalStoreProcess>
 {
 public:
-  ~StoreProcess() {}
+  ~LocalStoreProcess() {}
 
-  static Try<process::Owned<StoreProcess>> create(
+  static Try<process::Owned<LocalStoreProcess>> create(
       const Flags& flags,
       Fetcher* fetcher);
 
@@ -92,11 +105,8 @@ public:
 
   process::Future<Option<DockerImage>> get(const std::string& name);
 
-  process::Future<Option<process::Shared<DockerLayer>>> getLayer(
-      const std::string& hash);
-
 private:
-  StoreProcess(
+  LocalStoreProcess(
       const Flags& flags,
       Fetcher* fetcher);
 
