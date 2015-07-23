@@ -20,6 +20,7 @@
 #define __MESOS_DOCKER__
 
 #include <list>
+#include <ostream>
 #include <sstream>
 #include <string>
 #include <utility>
@@ -27,6 +28,8 @@
 
 #include <stout/hashmap.hpp>
 #include <stout/json.hpp>
+#include <stout/option.hpp>
+#include <stout/strings.hpp>
 #include <stout/try.hpp>
 
 #include <process/future.hpp>
@@ -37,6 +40,7 @@
 #include <mesos/resources.hpp>
 
 #include "slave/containerizer/provisioner.hpp"
+
 #include "slave/flags.hpp"
 
 namespace mesos {
@@ -48,50 +52,61 @@ namespace docker {
 class Backend;
 class Store;
 
-struct DockerLayer {
-  DockerLayer(
-      const std::string& hash,
-      const JSON::Object& manifest,
-      const std::string& path,
-      const std::string& version,
-      const Option<process::Shared<DockerLayer>> parent)
-    : hash(hash),
-      manifest(manifest),
-      path(path),
-      version(version),
-      parent(parent) {}
+struct ImageName
+{
+  std::string repo;
+  std::string tag;
+  Option<std::string> registry;
 
-  DockerLayer() {}
+  ImageName(const std::string& name)
+  {
+    std::vector<std::string> components = strings::split(name, "/");
+    if (components.size() > 2) {
+      registry = name.substr(0, name.find_last_of("/"));
+    } else {
+      registry = None();
+    }
+    std::size_t found = components.back().find_last_of(':');
+    if (found == std::string::npos) {
+      repo = components.back();
+      tag = "latest";
+    } else {
+      repo = components.back().substr(0, found);
+      tag = components.back().substr(found + 1);
+    }
+  }
 
-  std::string hash;
-  JSON::Object manifest;
-  std::string path;
-  std::string version;
-  Option<process::Shared<DockerLayer>> parent;
+  ImageName(
+      const std::string& repo,
+      const std::string& tag,
+      const Option<std::string>& registry = None())
+    : repo(repo), tag(tag), registry(registry) {}
+
+  ImageName() {}
 };
+
+
+inline std::ostream& operator<<(std::ostream& stream, const ImageName& image)
+{
+  if (image.registry.isSome()) {
+    return stream << image.registry.get()
+                  << "/" << image.repo << ":" << image.tag;
+  }
+  return stream << image.repo << ":" << image.tag;
+}
 
 
 struct DockerImage
 {
-  DockerImage(
-      const std::string& name,
-      const Option<process::Shared<DockerLayer>>& layer)
-    : name(name), layer(layer) {}
-
-  static Try<std::pair<std::string, std::string>> parseTag(
-      const std::string& name)
-  {
-    std::size_t found = name.find_last_of(':');
-    if (found == std::string::npos) {
-      return make_pair(name, "latest");
-    }
-    return make_pair(name.substr(0, found), name.substr(found + 1));
-  }
-
   DockerImage() {}
 
-  std::string name;
-  Option<process::Shared<DockerLayer>> layer;
+  DockerImage(
+      const std::string& imageName,
+      const std::list<std::string>& layers)
+  : imageName(imageName), layers(layers) {}
+
+  std::string imageName;
+  std::list<std::string> layers;
 };
 
 // Forward declaration.
