@@ -48,50 +48,41 @@ namespace docker {
 class Backend;
 class Store;
 
-struct DockerLayer {
-  DockerLayer(
-      const std::string& hash,
-      const JSON::Object& manifest,
-      const std::string& path,
-      const std::string& version,
-      const Option<process::Shared<DockerLayer>> parent)
-    : hash(hash),
-      manifest(manifest),
-      path(path),
-      version(version),
-      parent(parent) {}
-
-  DockerLayer() {}
-
-  std::string hash;
-  JSON::Object manifest;
-  std::string path;
-  std::string version;
-  Option<process::Shared<DockerLayer>> parent;
-};
-
-
-struct DockerImage
+struct ImageName
 {
-  DockerImage(
-      const std::string& name,
-      const Option<process::Shared<DockerLayer>>& layer)
-    : name(name), layer(layer) {}
+  std::string repo;
+  std::string tag;
 
-  static Try<std::pair<std::string, std::string>> parseTag(
-      const std::string& name)
+  ImageName(const std::string& name)
   {
     std::size_t found = name.find_last_of(':');
     if (found == std::string::npos) {
-      return make_pair(name, "latest");
+      repo = name;
+      tag = "latest";
+    } else {
+      repo = name.substr(0, found);
+      tag = name.substr(found + 1);
     }
-    return make_pair(name.substr(0, found), name.substr(found + 1));
   }
 
+  ImageName() {}
+};
+
+struct DockerImage
+{
   DockerImage() {}
 
+  DockerImage(
+      const std::string& name,
+      const std::string& path,
+      const Option<JSON::Object>& manifest,
+      const std::list<std::string>& layers)
+  : name(name), path(path), manifest(manifest), layers(layers) {}
+
   std::string name;
-  Option<process::Shared<DockerLayer>> layer;
+  std::string path;
+  Option<JSON::Object> manifest;
+  std::list<std::string> layers;
 };
 
 // Forward declaration.

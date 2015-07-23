@@ -47,6 +47,7 @@ public:
   Option<std::string> resources;
   std::string isolation;
   Option<std::string> provisioners;
+  std::string docker_store;
   std::string docker_store_dir;
   std::string docker_backend;
   std::string docker_rootfs_dir;
