@@ -68,7 +68,7 @@ CopyBackend::~CopyBackend()
 Try<Owned<Backend>> CopyBackend::create(const Flags& flags)
 {
   Owned<CopyBackendProcess> process = Owned<CopyBackendProcess>(
-      new CopyBackendProcess());
+      new CopyBackendProcess(flags));
 
   return Owned<Backend>(new CopyBackend(process));
 }
@@ -94,25 +94,23 @@ Future<bool> CopyBackend::destroy(const string& directory)
       directory);
 }
 
+CopyBackendProcess::CopyBackendProcess(const Flags& flags)
+  : flags(flags) {}
+
 
 Future<Nothing> CopyBackendProcess::provision(
     const DockerImage& image,
     const string& directory)
 {
-  list<Shared<DockerLayer>> layers;
   list<Future<Nothing>> futures{Nothing()};
 
-  Option<Shared<DockerLayer>> layer = image.layer;
-  while (layer.isSome()) {
-    layers.push_front(layer.get());
-    layer = layer.get()->parent;
-  }
-
-  foreach (const Shared<DockerLayer>& layer, layers)
-  {
-    futures.push_back(
-        futures.back().then(
-          defer(self(), &Self::_provision, image.name, *layer, directory)));
+  foreach (const string& layer, image.layers) {
+    futures.push_back(futures.back().then(defer(
+        self(),
+        &Self::_provision,
+        image.imageName,
+        layer,
+        directory)));
   }
 
   return collect(futures)
@@ -122,17 +120,23 @@ Future<Nothing> CopyBackendProcess::provision(
 
 
 Future<Nothing> CopyBackendProcess::_provision(
-  const string name,
-  const DockerLayer& layer,
+  const ImageName& imageName,
+  const string& layerId,
   const string& directory)
 {
-  LOG(INFO) << "Provisioning image '" << name << "' layer '" << layer.hash
-            << "' to " << directory;
+  LOG(INFO) << "Provisioning image '" << imageName.repo << ":" << imageName.tag
+            << "' layer '" << layerId << "' to " << directory;
+
+  Try<string> path = path::join(flags.docker_store_dir, layerId);
+  if (path.isError()) {
+    return Failure("Failed to obtain path while provisioning image layer " +
+                    layerId + ": " + path.error());
+  }
 
   vector<string> argv{
     "cp",
     "--archive",
-    path::join(layer.path, "rootfs"),
+    path::join(path.get(), layerId, "rootfs"),
     directory
   };
 

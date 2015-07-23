@@ -37,6 +37,7 @@
 #include <mesos/resources.hpp>
 
 #include "slave/containerizer/provisioner.hpp"
+
 #include "slave/flags.hpp"
 
 namespace mesos {
@@ -48,50 +49,40 @@ namespace docker {
 class Backend;
 class Store;
 
-struct DockerLayer {
-  DockerLayer(
-      const std::string& hash,
-      const JSON::Object& manifest,
-      const std::string& path,
-      const std::string& version,
-      const Option<process::Shared<DockerLayer>> parent)
-    : hash(hash),
-      manifest(manifest),
-      path(path),
-      version(version),
-      parent(parent) {}
-
-  DockerLayer() {}
-
-  std::string hash;
-  JSON::Object manifest;
-  std::string path;
-  std::string version;
-  Option<process::Shared<DockerLayer>> parent;
-};
-
-
-struct DockerImage
+struct ImageName
 {
-  DockerImage(
-      const std::string& name,
-      const Option<process::Shared<DockerLayer>>& layer)
-    : name(name), layer(layer) {}
+  std::string repo;
+  std::string tag;
 
-  static Try<std::pair<std::string, std::string>> parseTag(
-      const std::string& name)
+  ImageName(const std::string& name)
   {
     std::size_t found = name.find_last_of(':');
     if (found == std::string::npos) {
-      return make_pair(name, "latest");
+      repo = name;
+      tag = "latest";
+    } else {
+      repo = name.substr(0, found);
+      tag = name.substr(found + 1);
     }
-    return make_pair(name.substr(0, found), name.substr(found + 1));
   }
 
+  ImageName(const std::string& repo, const std::string& tag)
+    : repo(repo), tag(tag) {}
+
+  ImageName() {}
+};
+
+struct DockerImage
+{
   DockerImage() {}
 
-  std::string name;
-  Option<process::Shared<DockerLayer>> layer;
+  DockerImage(
+      const std::string& imageName,
+      const std::list<std::string>& layers)
+  : imageName(imageName), layers(layers) {}
+
+  std::string imageName;
+  std::list<std::string> layers;
 };
 
 // Forward declaration.
