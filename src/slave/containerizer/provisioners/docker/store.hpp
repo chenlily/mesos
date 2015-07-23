@@ -52,9 +52,8 @@ public:
   // the manifest, hash of the image, and the path to the extracted
   // image.
   virtual process::Future<DockerImage> put(
-      const std::string& uri,
       const std::string& name,
-      const std::string& directory) = 0;
+      const std::string& sandbox) = 0;
 
   // Get image by name.
   virtual process::Future<Option<DockerImage>> get(const std::string& name) = 0;
@@ -73,10 +72,11 @@ public:
       const Flags& flags,
       Fetcher* fetcher);
 
+  // Put assumes the image tar archive is located in the directory specified in
+  // the slave flag docker_discovery_local_dir and is named with <name>.tar .
   virtual process::Future<DockerImage> put(
-      const std::string& uri,
       const std::string& name,
-      const std::string& directory);
+      const std::string& sandbox);
 
   virtual process::Future<Option<DockerImage>> get(const std::string& name);
 
@@ -99,9 +99,8 @@ public:
       Fetcher* fetcher);
 
   process::Future<DockerImage> put(
-      const std::string& uri,
       const std::string& name,
-      const std::string& directory);
+      const std::string& sandbox);
 
   process::Future<Option<DockerImage>> get(const std::string& name);
 
@@ -112,28 +111,39 @@ private:
 
   Try<Nothing> restore();
 
-  process::Future<process::Shared<DockerLayer>> putLayer(
-      const std::string& uri,
-      const std::string& directory);
+  process::Future<Nothing> untarImage(
+      const std::string& tarPath,
+      const std::string& imagePath);
+
+  process::Future<DockerImage> putImage(
+      const std::string& name,
+      const std::string& imagePath,
+      const std::string& sandbox);
+
+  Result<std::string> getParentId(
+      const std::string& imagePath,
+      const std::string& layerId);
+
+  process::Future<Nothing> putLayers(
+      const std::string& imagePath,
+      const std::list<std::string>& layers,
+      const std::string& sandbox);
 
   process::Future<Nothing> untarLayer(
-      const std::string& uri);
+      const std::string& imagePath,
+      const std::string& id,
+      const std::string& sandbox);
 
-  process::Future<process::Shared<DockerLayer>> storeLayer(
-      const std::string& hash,
-      const std::string& uri,
-      const std::string& directory);
-
-  process::Future<process::Shared<DockerLayer>> entry(
-      const std::string& uri,
-      const std::string& directory);
+  process::Future<Nothing> copyLayer(
+      const std::string& imagePath,
+      const std::string& id,
+      const std::string& sandbox);
 
   const Flags flags;
 
-  // name -> DockerImage
+  // This map is keyed by the image name and its value is the corresponding
+  // DockerImage.
   hashmap<std::string, DockerImage> images;
-  // hash -> DockerLayer
-  hashmap<std::string, process::Shared<DockerLayer>> layers;
 
   Fetcher* fetcher;
 };

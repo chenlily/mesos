@@ -95,8 +95,9 @@ public:
 
 private:
   process::Future<Nothing> _provision(
-    const std::string name,
-    const DockerLayer& layer,
+    const std::string& name,
+    const std::string& path,
+    const std::string& layerId,
     const std::string& directory);
 };
 

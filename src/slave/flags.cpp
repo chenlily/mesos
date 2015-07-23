@@ -69,6 +69,11 @@ mesos::internal::slave::Flags::Flags()
       "Directory the appc provisioner will store images in",
       "/tmp/mesos/store/appc");
 
+  add(&Flags::docker_store,
+      "docker_store",
+      "Strategy for docker store to fetch images",
+      "local");
+
   add(&Flags::docker_store_dir,
       "docker_store_dir",
       "Directory the docker provisioner will store images in",
