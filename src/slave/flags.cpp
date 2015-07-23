@@ -89,6 +89,11 @@ mesos::internal::slave::Flags::Flags()
       "Directory for docker provisioner to look in for local images",
       "/tmp/mesos/images/docker");
 
+  add(&Flags::docker_store,
+      "docker_store",
+      "Strategy for docker store to fetch images",
+      "local");
+
   add(&Flags::docker_store_dir,
       "docker_store_dir",
       "Directory the docker provisioner will store images in",

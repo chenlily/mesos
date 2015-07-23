@@ -99,20 +99,16 @@ Future<Nothing> CopyBackendProcess::provision(
     const DockerImage& image,
     const string& directory)
 {
-  list<Shared<DockerLayer>> layers;
   list<Future<Nothing>> futures{Nothing()};
 
-  Option<Shared<DockerLayer>> layer = image.layer;
-  while (layer.isSome()) {
-    layers.push_front(layer.get());
-    layer = layer.get()->parent;
-  }
-
-  foreach (const Shared<DockerLayer>& layer, layers)
-  {
-    futures.push_back(
-        futures.back().then(
-          defer(self(), &Self::_provision, image.name, *layer, directory)));
+  foreach (const string& layer, image.layers) {
+    futures.push_back(futures.back().then(defer(
+        self(),
+        &Self::_provision,
+        image.name,
+        image.path,
+        layer,
+        directory)));
   }
 
   return collect(futures)
@@ -122,17 +118,18 @@ Future<Nothing> CopyBackendProcess::provision(
 
 
 Future<Nothing> CopyBackendProcess::_provision(
-  const string name,
-  const DockerLayer& layer,
+  const string& name,
+  const string& path,
+  const string& layerId,
   const string& directory)
 {
-  LOG(INFO) << "Provisioning image '" << name << "' layer '" << layer.hash
+  LOG(INFO) << "Provisioning image '" << name << "' layer '" << layerId
             << "' to " << directory;
 
   vector<string> argv{
     "cp",
     "--archive",
-    path::join(layer.path, "rootfs"),
+    path::join(path, layerId, "rootfs"),
     directory
   };
 

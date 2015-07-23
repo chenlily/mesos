@@ -226,14 +226,7 @@ Future<DockerImage> DockerProvisionerProcess::fetch(
         return image.get();
       }
 
-      Try<string> uri = path::join(
-          "file:///",
-          flags.docker_discovery_local_dir,
-          name);
-      if (uri.isError()) {
-        return Failure(uri.error());
-      }
-      return store->put(uri.get(), name, directory);
+      return store->put(name, directory);
     });
 }
 
