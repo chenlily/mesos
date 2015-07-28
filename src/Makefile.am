@@ -231,6 +231,11 @@ STATE_PROTOS = messages/state.pb.cc messages/state.pb.h
 BUILT_SOURCES += $(STATE_PROTOS)
 CLEANFILES += $(STATE_PROTOS)
 
+DOCKER_PROVISIONER_PROTOS = messages/docker_provisioner.pb.cc messages/docker_provisioner.pb.h
+
+BUILT_SOURCES += $(DOCKER_PROVISIONER_PROTOS)
+CLEANFILES += $(DOCKER_PROVISIONER_PROTOS)
+
 REGISTRY_PROTOS = master/registry.pb.cc master/registry.pb.h
 
 BUILT_SOURCES += $(REGISTRY_PROTOS)
@@ -394,6 +399,7 @@ nodist_libmesos_no_3rdparty_la_SOURCES =				\
   $(CXX_PROTOS)								\
   $(FLAGS_PROTOS)							\
   $(MESSAGES_PROTOS)							\
+  $(DOCKER_PROVISIONER_PROTOS)        \
   $(REGISTRY_PROTOS)
 
 # TODO(tillt): Remove authentication/cram_md5/* which will enable us to
@@ -437,6 +443,7 @@ libmesos_no_3rdparty_la_SOURCES =					\
 	master/validation.cpp						\
 	master/allocator/allocator.cpp					\
 	master/allocator/sorter/drf/sorter.cpp				\
+  messages/docker_provisioner.proto           \
 	messages/flags.proto						\
 	messages/messages.proto						\
 	module/manager.cpp						\
@@ -484,7 +491,6 @@ libmesos_no_3rdparty_la_SOURCES =					\
 	zookeeper/zookeeper.cpp						\
 	zookeeper/authentication.cpp					\
 	zookeeper/group.cpp
-
 
 pkginclude_HEADERS =							\
   $(top_srcdir)/include/mesos/executor.hpp				\
@@ -625,6 +631,7 @@ if OS_LINUX
   libmesos_no_3rdparty_la_SOURCES += slave/containerizer/linux_launcher.cpp
   libmesos_no_3rdparty_la_SOURCES += slave/containerizer/provisioners/docker.cpp
   libmesos_no_3rdparty_la_SOURCES += slave/containerizer/provisioners/docker/backend.cpp
+  libmesos_no_3rdparty_la_SOURCES += slave/containerizer/provisioners/docker/reference_store.cpp
   libmesos_no_3rdparty_la_SOURCES += slave/containerizer/provisioners/docker/store.cpp
 else
   EXTRA_DIST += linux/cgroups.cpp
@@ -717,6 +724,7 @@ libmesos_no_3rdparty_la_SOURCES +=					\
 	master/allocator/mesos/hierarchical.hpp				\
 	master/allocator/sorter/drf/sorter.hpp				\
 	master/allocator/sorter/sorter.hpp				\
+  messages/docker_provisioner.hpp       \
 	messages/flags.hpp						\
 	messages/messages.hpp						\
 	module/manager.hpp						\
@@ -756,7 +764,8 @@ libmesos_no_3rdparty_la_SOURCES +=					\
 	slave/containerizer/mesos/launch.hpp				\
 	slave/containerizer/provisioners/docker.hpp			\
 	slave/containerizer/provisioners/docker/backend.hpp		\
-	slave/containerizer/provisioners/docker/store.hpp		\
+	slave/containerizer/provisioners/docker/reference_store.hpp		\
+  slave/containerizer/provisioners/docker/store.hpp   \
 	slave/resource_estimators/noop.hpp				\
 	tests/cluster.hpp						\
 	tests/containerizer.hpp						\
