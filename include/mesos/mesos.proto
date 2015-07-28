@@ -1380,3 +1380,35 @@ message AppcImageManifest {
 
   repeated Annotation annotations = 8;
 }
+
+/**
+* Protobuf for looking up Docker image layer ids in Docker image provisioner.
+* An image is first keyed by its repository name and then a reference string.
+* A reference can be either the image's tag or a layer's checksum digest.
+*/
+message DockerRepositories {
+  message Reference {
+    required string reference = 1;
+    required string id = 2;
+  }
+
+  message Repository {
+    required string name = 1;
+    repeated Reference references = 2;
+  }
+
+  repeated Repository repositories = 1;
+}
+
+/**
+* Protobuf serializing a list of dependent list of layers associated with an
+* Docker image in the Docker image provisioner.
+*/
+message DockerLayerDependencies {
+  message Image {
+    required string name = 1;
+    repeated string layers = 2;
+  }
+
+  repeated Image images = 1;
+}
