@@ -33,6 +33,7 @@
 #include <process/shared.hpp>
 
 #include "slave/containerizer/provisioners/docker.hpp"
+#include "slave/containerizer/provisioners/docker/reference_store.hpp"
 #include "slave/flags.hpp"
 
 namespace mesos {
@@ -136,8 +137,6 @@ public:
 private:
   LocalStoreProcess(const Flags& flags);
 
-  Try<Nothing> restore(const Flags& flags);
-
   process::Future<Nothing> untarImage(
       const std::string& tarPath,
       const std::string& staging);
@@ -168,9 +167,7 @@ private:
 
   const Flags flags;
 
-  // This hahsmap maps a Docker image by name to its corresponding DockerImage
-  // object.
-  hashmap<std::string, DockerImage> images;
+  process::Owned<ReferenceStore> refStore;
 };
 
 } // namespace docker {
