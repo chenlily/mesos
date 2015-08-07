@@ -85,7 +85,7 @@ private:
 class CopyBackendProcess : public process::Process<CopyBackendProcess>
 {
 public:
-  CopyBackendProcess() {}
+  CopyBackendProcess(const Flags& flags);
 
   process::Future<Nothing> provision(
       const DockerImage& image,
@@ -95,10 +95,11 @@ public:
 
 private:
   process::Future<Nothing> _provision(
-    const std::string& name,
-    const std::string& path,
+    const ImageName& imageName,
     const std::string& layerId,
     const std::string& directory);
+
+  const Flags flags;
 };
 
 } // namespace docker {

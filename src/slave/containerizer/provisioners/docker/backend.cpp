@@ -68,7 +68,7 @@ CopyBackend::~CopyBackend()
 Try<Owned<Backend>> CopyBackend::create(const Flags& flags)
 {
   Owned<CopyBackendProcess> process = Owned<CopyBackendProcess>(
-      new CopyBackendProcess());
+      new CopyBackendProcess(flags));
 
   return Owned<Backend>(new CopyBackend(process));
 }
@@ -94,6 +94,9 @@ Future<bool> CopyBackend::destroy(const string& directory)
       directory);
 }
 
+CopyBackendProcess::CopyBackendProcess(const Flags& flags)
+  : flags(flags) {}
+
 
 Future<Nothing> CopyBackendProcess::provision(
     const DockerImage& image,
@@ -105,8 +108,7 @@ Future<Nothing> CopyBackendProcess::provision(
     futures.push_back(futures.back().then(defer(
         self(),
         &Self::_provision,
-        image.name,
-        image.path,
+        image.imageName,
         layer,
         directory)));
   }
@@ -118,18 +120,23 @@ Future<Nothing> CopyBackendProcess::provision(
 
 
 Future<Nothing> CopyBackendProcess::_provision(
-  const string& name,
-  const string& path,
+  const ImageName& imageName,
   const string& layerId,
   const string& directory)
 {
-  LOG(INFO) << "Provisioning image '" << name << "' layer '" << layerId
-            << "' to " << directory;
+  LOG(INFO) << "Provisioning image '" << imageName.repo << ":" << imageName.tag
+            << "' layer '" << layerId << "' to " << directory;
+
+  Try<string> path = path::join(flags.docker_store_dir, layerId);
+  if (path.isError()) {
+    return Failure("Failed to obtain path while provisioning image layer " +
+                    layerId + ": " + path.error());
+  }
 
   vector<string> argv{
     "cp",
     "--archive",
-    path::join(path, layerId, "rootfs"),
+    path::join(path.get(), layerId, "rootfs"),
     directory
   };
 

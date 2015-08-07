@@ -37,6 +37,7 @@
 #include <mesos/resources.hpp>
 
 #include "slave/containerizer/provisioner.hpp"
+
 #include "slave/flags.hpp"
 
 namespace mesos {
@@ -65,6 +66,9 @@ struct ImageName
     }
   }
 
+  ImageName(const std::string& repo, const std::string& tag)
+      : repo(repo), tag(tag) {}
+
   ImageName() {}
 };
 
@@ -73,15 +77,11 @@ struct DockerImage
   DockerImage() {}
 
   DockerImage(
-      const std::string& name,
-      const std::string& path,
-      const Option<JSON::Object>& manifest,
+      const std::string& imageName,
       const std::list<std::string>& layers)
-  : name(name), path(path), manifest(manifest), layers(layers) {}
+  : imageName(imageName), layers(layers) {}
 
-  std::string name;
-  std::string path;
-  Option<JSON::Object> manifest;
+  std::string imageName;
   std::list<std::string> layers;
 };
 

@@ -160,8 +160,6 @@ Future<Nothing> DockerProvisionerProcess::recover(
     const list<ContainerState>& states,
     const hashset<ContainerID>& orphans)
 {
-  // TODO(chenlily): Implement this, if a need arises.
-
   return Nothing();
 }
 
