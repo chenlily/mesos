@@ -1692,6 +1692,7 @@ if OS_LINUX
   mesos_tests_SOURCES += tests/containerizer/perf_tests.cpp
   mesos_tests_SOURCES += tests/containerizer/sched_tests.cpp
   mesos_tests_SOURCES += tests/containerizer/setns_test_helper.cpp
+  mesos_tests_SOURCES += tests/containerizer/docker_provisioner_tests.cpp
 endif
 
 if WITH_NETWORK_ISOLATOR
