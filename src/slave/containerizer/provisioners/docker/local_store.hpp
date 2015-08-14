@@ -16,59 +16,55 @@
  * limitations under the License.
  */
 
-#ifndef __MESOS_DOCKER_STORE__
-#define __MESOS_DOCKER_STORE__
+#ifndef __MESOS_DOCKER_LOCAL_STORE__
+#define __MESOS_DOCKER_LOCAL_STORE__
 
-#include <string>
-
-#include <stout/option.hpp>
-#include <stout/try.hpp>
-
-#include <process/future.hpp>
-
-#include "slave/containerizer/provisioners/docker.hpp"
-#include "slave/containerizer/provisioners/docker/reference_store.hpp"
-#include "slave/flags.hpp"
+#include "slave/containerizer/provisioners/docker/store.hpp"
 
 namespace mesos {
 namespace internal {
 namespace slave {
 namespace docker {
 
-class Store
+/**
+ * Forward declaration.
+ */
+class LocalStoreProcess;
+
+
+class LocalStore : public Store
 {
 public:
+  virtual ~LocalStore();
+
   static Try<process::Owned<Store>> create(
       const Flags& flags,
       Fetcher* fetcher);
 
-  virtual ~Store() {}
-
   /**
-   * Put an image into to the store. Returns the DockerImage containing
-   * the manifest, hash of the image, and the path to the extracted
-   * image.
-   *
-   * @param name The name of the Docker image being stored.
-   * @param sandbox The path of the directory in which the stderr and
-   *     stdout logs will be placed.
-   *
-   * @return The DockerImage placed in the store.
+   * Put assumes the image tar archive is located in the directory specified in
+   * the slave flag docker_discovery_local_dir and is named with <name>.tar .
    */
   virtual process::Future<DockerImage> put(
       const std::string& name,
-      const std::string& sandbox) = 0;
+      const std::string& sandbox);
+
+  virtual process::Future<Option<DockerImage>> get(const std::string& name);
+
+private:
+  explicit LocalStore(process::Owned<LocalStoreProcess> process);
 
   /**
-  * Get image by name.
-  *
-  * @param name The name of the Docker image to retrieve from store.
-  *
-  * @return The DockerImage or none if image is not in the store.
-  */
-  virtual process::Future<Option<DockerImage>> get(const std::string& name) = 0;
+   * Not copyable.
+   */
+  LocalStore(const LocalStore&);
 
-  // TODO(chenlily): Implement removing an image.
+  /**
+   * Not assignable.
+   */
+  LocalStore& operator=(const LocalStore&);
+
+  process::Owned<LocalStoreProcess> process;
 };
 
 } // namespace docker {
@@ -76,4 +72,4 @@ public:
 } // namespace internal {
 } // namespace mesos {
 
-#endif // __MESOS_DOCKER_STORE__
+#endif // __MESOS_DOCKER_LOCAL_STORE__
