@@ -33,6 +33,7 @@
 #include "slave/containerizer/fetcher.hpp"
 
 #include "slave/containerizer/provisioners/docker/local_store.hpp"
+#include "slave/containerizer/provisioners/docker/paths.hpp"
 
 using namespace process;
 
@@ -170,12 +171,9 @@ Future<DockerImage> LocalStoreProcess::put(
     const string& name,
     const string& sandbox)
 {
-  string tarName = name + ".tar";
-  Try<string> tarPath = path::join(flags.docker_discovery_local_dir, tarName);
-  if (tarPath.isError()) {
-    return Failure(tarPath.error());
-  }
-  if (!os::exists(tarPath.get())) {
+  string tarPath =
+    paths::getLocalImageTarPath(flags.docker_discovery_local_dir, name);
+  if (!os::exists(tarPath)) {
     return Failure("No Docker image tar archive found");
   }
 
@@ -185,7 +183,7 @@ Future<DockerImage> LocalStoreProcess::put(
     return Failure("Failed to create a staging directory");
   }
 
-  return untarImage(tarPath.get(), staging.get())
+  return untarImage(tarPath, staging.get())
     .then(defer(self(), &Self::putImage, name, staging.get(), sandbox));
 }
 
@@ -239,13 +237,8 @@ Future<DockerImage> LocalStoreProcess::putImage(
     const string& sandbox)
 {
   ImageName imageName(name);
-  // Read repository json.
-  Try<string> repoPath = path::join(staging, "repositories");
-  if (repoPath.isError()) {
-    return Failure("Failed to create path to repository: " + repoPath.error());
-  }
 
-  Try<string> value = os::read(repoPath.get());
+  Try<string> value = os::read(paths::getLocalImageRepositoriesPath(staging));
   if (value.isError()) {
     return Failure("Failed to read repository JSON: " + value.error());
   }
@@ -274,18 +267,10 @@ Future<DockerImage> LocalStoreProcess::putImage(
     return Failure("Tag json value expected to be JSON::String");
   }
 
-  Try<string> layerPath = path::join(
-      staging,
-      entry->second.as<JSON::String>().value);
-
   string layerId = entry->second.as<JSON::String>().value;
 
-  if (layerPath.isError()) {
-    return Failure("Failed to create path to image layer: " +
-                    layerPath.error());
-  }
-
-  Try<string> manifest = os::read(path::join(staging, layerId, "json"));
+  Try<string> manifest =
+    os::read(paths::getLocalImageLayerManifestPath(staging, layerId));
   if (manifest.isError()) {
     return Failure("Failed to read manifest: " + manifest.error());
   }
@@ -317,7 +302,8 @@ Result<string> LocalStoreProcess::getParentId(
     const string& staging,
     const string& layerId)
 {
-  Try<string> manifest = os::read(path::join(staging, layerId, "json"));
+  Try<string> manifest =
+    os::read(paths::getLocalImageLayerManifestPath(staging, layerId));
   if (manifest.isError()) {
     return Error("Failed to read manifest: " + manifest.error());
   }
@@ -360,28 +346,29 @@ Future<Nothing> LocalStoreProcess::untarLayer(
     const string& sandbox)
 {
   // Check if image layer is already in store.
-  if (os::exists(path::join(flags.docker_store_dir, id))) {
+  if (os::exists(paths::getImageLayerPath(flags.docker_store_dir, id))) {
     VLOG(1) << "Image layer: " << id << " already in store. Skipping untar"
             << " and putLayer.";
     return Nothing();
   }
 
   // Image layer has been untarred but is not present in the store directory.
-  if (os::exists(path::join(staging, id, "rootfs"))) {
+  string localRootfsPath = paths::getLocalImageLayerRootfsPath(staging, id);
+  if (os::exists(localRootfsPath)) {
     LOG(WARNING) << "Image layer rootfs present at but not in store directory: "
-                << path::join(staging, id) << "Skipping untarLayer.";
+                 << localRootfsPath << "Skipping untarLayer.";
     return moveLayer(staging, id, sandbox);
   }
 
-  os::mkdir(path::join(staging, id, "rootfs"));
+  os::mkdir(localRootfsPath);
   // Untar staging/id/layer.tar into staging/id/rootfs.
   vector<string> argv = {
     "tar",
     "-C",
-    path::join(staging, id, "rootfs"),
+    localRootfsPath,
     "-x",
     "-f",
-    path::join(staging, id, "layer.tar")
+    paths::getLocalImageLayerTarPath(staging, id)
   };
 
   Try<Subprocess> s = subprocess(
@@ -397,14 +384,13 @@ Future<Nothing> LocalStoreProcess::untarLayer(
 
   return s.get().status()
     .then([=](const Option<int>& status) -> Future<Nothing> {
-      Try<string> layerPath = path::join(staging, id, "rootfs");
       if (status.isNone()) {
         return Failure("Failed to reap status for tar subprocess in " +
-                        layerPath.get());
+                        localRootfsPath);
       }
       if (status.isSome() && status.get() != 0) {
         return Failure("Non-zero exit for tar subprocess: " +
-                        stringify(status.get()) + " in " + layerPath.get());
+                        stringify(status.get()) + " in " + localRootfsPath);
       }
       return moveLayer(staging, id, sandbox);
     });
@@ -441,14 +427,14 @@ Future<Nothing> LocalStoreProcess::moveLayer(
     os::mkdir(flags.docker_store_dir);
   }
 
-  if (!os::exists(path::join(flags.docker_store_dir, id))) {
-    os::mkdir(path::join(flags.docker_store_dir, id));
+  if (!os::exists(paths::getImageLayerPath(flags.docker_store_dir, id))) {
+    os::mkdir(paths::getImageLayerPath(flags.docker_store_dir, id));
   }
 
   vector<string> argv = {
     "mv",
-    path::join(staging, id, "rootfs"),
-    path::join(flags.docker_store_dir, id)
+    paths::getLocalImageLayerRootfsPath(staging, id),
+    paths::getImageLayerPath(flags.docker_store_dir, id)
   };
 
   VLOG(1) << "Moving layer to store directory with command: "
