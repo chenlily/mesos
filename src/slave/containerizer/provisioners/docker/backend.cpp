@@ -25,6 +25,7 @@
 #include <process/subprocess.hpp>
 
 #include "slave/containerizer/provisioners/docker/backend.hpp"
+#include "slave/containerizer/provisioners/docker/paths.hpp"
 
 using namespace process;
 
@@ -127,16 +128,10 @@ Future<Nothing> CopyBackendProcess::_provision(
   LOG(INFO) << "Provisioning image '" << imageName.repo << ":" << imageName.tag
             << "' layer '" << layerId << "' to " << directory;
 
-  Try<string> path = path::join(flags.docker_store_dir, layerId);
-  if (path.isError()) {
-    return Failure("Failed to obtain path while provisioning image layer " +
-                    layerId + ": " + path.error());
-  }
-
   vector<string> argv{
     "cp",
     "--archive",
-    path::join(path.get(), layerId, "rootfs"),
+    paths::getImageLayerRootfsPath(flags.docker_store_dir, layerId),
     directory
   };
 
