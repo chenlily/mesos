@@ -543,7 +543,7 @@ Future<Nothing> DockerContainerizerProcess::recover(
     // order to remove any orphans and reconcile checkpointed executors.
     // TODO(tnachen): Remove this when we expect users to have already
     // upgraded to 0.23.
-    return docker->ps(true, DOCKER_NAME_PREFIX + state.get().id.value())
+    return docker->ps(true/*, DOCKER_NAME_PREFIX + state.get().id.value()*/)
       .then(defer(self(), &Self::_recover, state.get(), lambda::_1));
   }
 
