@@ -481,6 +481,8 @@ libmesos_no_3rdparty_la_SOURCES =					\
 	slave/containerizer/provisioners/appc/spec.cpp			\
 	slave/containerizer/provisioners/appc/store.cpp			\
 	slave/containerizer/provisioners/backend.cpp			\
+	slave/containerizer/provisioners/docker/token_manager.cpp	\
+	slave/containerizer/provisioners/docker/token_manager.hpp	\
 	slave/resource_estimators/noop.cpp				\
 	usage/usage.cpp							\
 	v1/attributes.cpp						\
@@ -1646,6 +1648,7 @@ mesos_tests_SOURCES =						\
   tests/paths_tests.cpp						\
   tests/persistent_volume_tests.cpp				\
   tests/protobuf_io_tests.cpp					\
+  tests/provisioners/docker_provisioner_tests.cpp		\
   tests/rate_limiting_tests.cpp					\
   tests/reconciliation_tests.cpp				\
   tests/registrar_tests.cpp					\
