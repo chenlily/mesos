@@ -483,6 +483,8 @@ libmesos_no_3rdparty_la_SOURCES =					\
 	slave/containerizer/provisioners/backend.cpp			\
 	slave/containerizer/provisioners/docker/token_manager.cpp	\
 	slave/containerizer/provisioners/docker/token_manager.hpp	\
+	slave/containerizer/provisioners/docker/registry_client.cpp	\
+	slave/containerizer/provisioners/docker/registry_client.hpp	\
 	slave/resource_estimators/noop.cpp				\
 	usage/usage.cpp							\
 	v1/attributes.cpp						\
