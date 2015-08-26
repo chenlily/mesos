@@ -54,6 +54,10 @@ public:
   std::string docker_backend;
   std::string docker_rootfs_dir;
   std::string docker_discovery_local_dir;
+  // TODO(chenlily): Move extend docker remote parameters to protobuf.
+  std::string docker_remote_auth_server;
+  std::string docker_remote_registry_server;
+
   std::string default_role;
   Option<std::string> attributes;
   Bytes fetcher_cache_size;

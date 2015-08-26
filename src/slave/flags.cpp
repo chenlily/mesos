@@ -95,6 +95,17 @@ mesos::internal::slave::Flags::Flags()
       "Directory for docker provisioner to look in for local images",
       "/tmp/mesos/images/docker");
 
+  add(&Flags::docker_remote_auth_server,
+      "docker_remote_auth_server",
+      "URL to authorization server to obtain token for communicating with\n"
+      "remote Docker registry",
+      "auth.docker.io");
+
+  add(&Flags::docker_remote_registry_server,
+      "docker_remote_registry_server",
+      "URL from which to obtain remote Docker images",
+      "registry.docker.io");
+
   add(&Flags::default_role,
       "default_role",
       "Any resources in the --resources flag that\n"
