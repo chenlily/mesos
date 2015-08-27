@@ -17,113 +17,113 @@
 
 namespace process {
 
-// Forward declaration.
+// Execute work in parallel. If the size of the work exceeds the concurrency
+// limit, the work may be postponed. The work will be parallelized in batches.
+// Returns the result of the work.
 template <typename T>
-class ParallelProcess;
+Future<std::list<T>> batch(
+    size_t maxConcurrency,
+    std::list<lambda::function<Future<T>(void)>& work);
 
-// Provides an abstraction that limits the concurrency of asynchronous
-// operations.
+namespace internal {
+
 template <typename T>
-class Parallel
+inline Future<std::list<T>> batch(
+    size_t maxConcurrency,
+    std::list<lambda::function<Future<T>(void)>& work)
+{
+  if (work.empty()) {
+    return std::list<T>();
+  }
+
+  Promise<std::list<T>>* promise = new Promise<std::list<T>>();
+  Future<std::list<T>> future = promise->future();
+  spawn(new internal::BatchProcess<T>(work, promise), true);
+  return future;
+}
+
+
+template <typename T>
+class BatchProcess : public Process<BatchProcess<T>>
 {
 public:
-  Parallel(size_t maxConcurrency);
-  ~Parallel();
+  BatchProcess(
+      const std::list<lambda::function<Future<T>(void)>& _futures,
+      Promise<std::list<T>>* _promise)
+    : futures(_futures),
+      promise(_promise),
+      ready(0) {}
 
-  // Adds a unit of asynchronous work to execute. The work may be postponed to
-  // ensure the concurrency limit is not violated.
-  // Returns the result of the work.
-  Future<T> add(const lambda::function<Future<T>()>& work);
+  virtual ~CollectProcess()
+  {
+    delete promise;
+  }
+
+  virtual void initialize()
+  {
+    promise->future().onDiscard(defer(this, &CollectProcess::discarded));
+
+    // Split work into batches.
+    vector<vector<lambda::function<Future<T>(void)>>> batches;
+    vector<lambda::function<Future<T>(void)>> batch;
+    batches.push_back(batch);
+    foreach (const lambda::function<Future<T>(void)>& callback, work)
+    {
+      if(batches.empty() || batches.back().size() == maxConcurrency) {
+        batches.push_back(batch);
+      }
+      batches.back().push_back(callback);
+    }
+
+    list<Future<Nothing>> futures{ Nothing() };
+    foreach (const vector<lambda::function<Future<T>(void)>>& batch, batches) {
+    futures.push_back(
+        futures.back().then(
+          defer(self(), &Self::processBatch, batch)));
+    }
+
+    collect(futures)
+      .onAny([=](Future<list<Nothing>> & status) {
+        if (status.isError()) {
+          promise->fail("Failed to proceses in parallel: " + status.error());
+          terminate(this);
+        }
+        if (status.isDiscarded()) {
+          promise->fail("Failed to process in batch, future discarded.");
+          terminate(this);
+        }
+        promise->set(results);
+        terminate(this);
+      });
+  }
 
 private:
-  // Not copyable, not assignable.
-  Parallel<T>(const Parallel<T>&);
-  Parallel<T>& operator = (const Parallel<T>&);
+  void discarded()
+  {
+    promise->discard();
+    terminate(this);
+  }
 
-  ParallelProcess<T>* process;
+  Future<Nothing> processBatch(batch)
+  {
+    foreach(job, batch) {
+      Future<T> result = internal::run(job);
+      result.onAny(const Future<T>& status) {
+        if
+      }
+      if (result.isError()) {
+        return Failure("Failed to run an job in parallel process batch");
+      }
+      results.push_back(result.get());
+    }
+    return Nothing();
+  }
+
+  Promise<std::list<T>>* promise;
+  std::list<T> results;
 };
 
-template <typename T>
-class ParallelProcess : public Process<ParallelProcess<T>>
-{
-public:
-  ParallelProcess(std::size_t _maxConcurrency)
-  {
-    maxConcurrency = _maxConcurrency;
-    CHECK_GT(maxConcurrency, 0);
-    workSize = 0;
-  }
-
-  Future<T> add(const lambda::function<Future<T>()>& work)
-  {
-    // This is the future that will be returned to the user.
-    Owned<Promise<T>> promise(new Promise<T>());
-
-    promise->future().onAny([=]() { completed(); });
-
-    if (workSize > maxConcurrency) {
-        waitQueue.push(std::make_pair(promise, work));
-    } else {
-      notified(promise, work);
-    }
-
-    return promise->future();
-  }
-
-private:
-  // Invoked when a callback is done.
-  void completed()
-  {
-    workSize--;
-    if (!waitQueue.empty()) {
-      notified(waitQueue.front().first, waitQueue.front().second);
-      waitQueue.pop();
-    }
-  }
-
-  void notified(
-      Owned<Promise<T>> promise,
-      const lambda::function<Future<T>()>& work)
-  {
-    if (promise->future().hasDiscard()) {
-      promise->discard();
-    } else {
-      promise->associate(work());
-      workSize++;
-    }
-  }
-
-  // Size of currently running jobs.
-  size_t workSize;
-  size_t maxConcurrency;
-
-  // TODO(chenlily): Split tuple into a struct w/ const member variables.
-  std::queue<
-      std::pair<Owned<Promise<T>>, lambda::function<Future<T>()> >> waitQueue;
-};
-
-template <typename T>
-inline Parallel<T>::Parallel(size_t maxConcurrency)
-{
-  process = new typename process::ParallelProcess<T>(maxConcurrency);
-  process::spawn(process);
-}
-
-template <typename T>
-inline Parallel<T>::~Parallel()
-{
-  process::terminate(process);
-  process::wait(process);
-  delete process;
-}
-
-
-template <typename T>
-Future<T> Parallel<T>::add(const lambda::function<Future<T>()>& work)
-{
-  return dispatch(process, &ParallelProcess<T>::add, work);
-}
-
+} // namespace internal {
 } // namespace process {
 
 #endif // __PROCESS_Parallel_HPP__
