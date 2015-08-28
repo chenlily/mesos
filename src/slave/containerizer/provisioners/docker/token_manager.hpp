@@ -35,9 +35,7 @@
 namespace mesos {
 namespace internal {
 namespace slave {
-namespace provisioners {
 namespace docker {
-namespace registry {
 
 /**
  * Encapsulates JSON Web Token.
@@ -222,9 +220,7 @@ private:
 };
 
 
-} // namespace registry {
 } // namespace docker {
-} // namespace provisioners {
 } // namespace slave {
 } // namespace internal {
 } // namespace mesos {

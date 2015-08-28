@@ -31,9 +31,7 @@ using std::vector;
 namespace mesos {
 namespace internal {
 namespace slave {
-namespace provisioners {
 namespace docker {
-namespace registry {
 
 const string TokenManager::TOKEN_PATH_PREFIX = "/v2/token/";
 
@@ -340,9 +338,7 @@ Future<Token> TokenManagerProcess::getToken(const http::URL& url)
 
 // TODO(jojy): Add implementatio for basic authentication based getToken API
 
-} // namespace registry {
 } // namespace docker {
-} // namespace provisioners {
 } // namespace slave {
 } // namespace internal {
 } // namespace mesos {

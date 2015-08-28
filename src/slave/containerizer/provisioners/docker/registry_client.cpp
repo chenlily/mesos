@@ -24,8 +24,6 @@
 #include "slave/containerizer/provisioners/docker/registry_client.hpp"
 #include "slave/containerizer/provisioners/docker/token_manager.hpp"
 
-
-using namespace mesos::internal::slave::provisioners::docker::registry;
 using namespace process;
 using namespace process::http;
 
@@ -35,9 +33,7 @@ using std::vector;
 namespace mesos {
 namespace internal {
 namespace slave {
-namespace provisioners {
 namespace docker {
-namespace registry {
 
 using ManifestResponse = RegistryClient::ManifestResponse;
 
@@ -509,9 +505,7 @@ Future<size_t> RegistryClientProcess::getBlob(
   return promise->future();
 }
 
-} // namespace registry {
 } // namespace docker {
-} // namespace provisioners {
 } // namespace slave {
 } // namespace internal {
 } // namespace mesos {

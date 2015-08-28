@@ -31,10 +31,7 @@
 namespace mesos {
 namespace internal {
 namespace slave {
-namespace provisioners {
 namespace docker {
-namespace registry {
-
 
 // Forward declaration.
 class RegistryClientProcess;
@@ -192,9 +189,7 @@ private:
   RegistryClientProcess& operator = (const RegistryClientProcess&) = delete;
 };
 
-} // namespace registry {
 } // namespace docker {
-} // namespace provisioners {
 } // namespace slave {
 } // namespace internal {
 } // namespace mesos {
